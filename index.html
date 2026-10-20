@@ -504,6 +504,8 @@ function loadVoices(){
   const opts = bundleKeys.map(k => `<option value="b:${k}">🇦🇷 ${esc(BUNDLE[k].label)}</option>`)
     .concat(voices.map((v,i) => `<option value="${i}">${esc(v.name)} (${v.lang})</option>`));
   $("voiceSel").innerHTML = opts.length ? opts.join("") : `<option>No Spanish voice</option>`;
+  // first time the Argentine voices are available, make one the default (overrides an older device-voice choice once)
+  if(bundleKeys.length && !settings.bundleDefaulted){ settings.voice = "b:" + bundleKeys[0]; settings.bundleDefaulted = true; put(K.settings, settings); }
   const saved = settings.voice;
   if(saved && saved.startsWith("b:") && BUNDLE[saved.slice(2)]) $("voiceSel").value = saved;
   else { const idx = voices.findIndex(v => v.name === saved); $("voiceSel").value = idx >= 0 ? String(idx) : (bundleKeys.length ? "b:" + bundleKeys[0] : "0"); }
