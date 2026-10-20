@@ -236,6 +236,7 @@
 </div>
 <div id="toast" class="toast"></div>
 
+<script src="audio.js"></script>
 <script>
 // ================= DATA =================
 const BUILTIN = [
@@ -491,30 +492,44 @@ function grade(g){
 }
 
 // ================= AUDIO =================
-let voices = [], voice = null, audioEl = null;
+// Bundled Argentine neural voices live in audio.js (optional): window.ARG_AUDIO = {voices:{key:{label, clips:{"<spanish text>": base64mp3}}}}
+const BUNDLE = (window.ARG_AUDIO && window.ARG_AUDIO.voices) || {};
+const bundleKeys = Object.keys(BUNDLE);
+let voices = [], voice = null, bundleVoice = null, audioEl = null;
+const bundleClip = text => bundleVoice && BUNDLE[bundleVoice].clips[text];
 function loadVoices(){
-  voices = (speechSynthesis.getVoices() || []).filter(v => /^es/i.test(v.lang));
+  voices = ("speechSynthesis" in window ? speechSynthesis.getVoices() || [] : []).filter(v => /^es/i.test(v.lang));
   const rank = v => /es[-_]AR/i.test(v.lang) ? 0 : /es[-_](UY|419|US|MX)/i.test(v.lang) ? 1 : 2;
   voices.sort((a,b) => rank(a) - rank(b));
-  $("voiceSel").innerHTML = voices.length ? voices.map((v,i) => `<option value="${i}">${esc(v.name)} (${v.lang})</option>`).join("") : `<option>No Spanish voice</option>`;
-  const idx = voices.findIndex(v => v.name === settings.voice);
-  $("voiceSel").value = idx >= 0 ? idx : 0;
-  voice = voices[$("voiceSel").value] || null;
+  const opts = bundleKeys.map(k => `<option value="b:${k}">🇦🇷 ${esc(BUNDLE[k].label)}</option>`)
+    .concat(voices.map((v,i) => `<option value="${i}">${esc(v.name)} (${v.lang})</option>`));
+  $("voiceSel").innerHTML = opts.length ? opts.join("") : `<option>No Spanish voice</option>`;
+  const saved = settings.voice;
+  if(saved && saved.startsWith("b:") && BUNDLE[saved.slice(2)]) $("voiceSel").value = saved;
+  else { const idx = voices.findIndex(v => v.name === saved); $("voiceSel").value = idx >= 0 ? String(idx) : (bundleKeys.length ? "b:" + bundleKeys[0] : "0"); }
+  applyVoice();
+}
+function applyVoice(){
+  const v = $("voiceSel").value || "";
+  bundleVoice = v.startsWith("b:") ? v.slice(2) : null;
+  voice = bundleVoice ? (voices[0] || null) : (voices[v] || null);
+  updateAudioBadge();
+}
+function playSrc(src, slow){
+  audioEl = new Audio(src);
+  audioEl.preservesPitch = true; audioEl.playbackRate = slow ? .75 : 1;
+  return audioEl.play().then(() => true).catch(() => false);
 }
 async function speak(slow){
   if(!current) return;
   if(audioEl){ audioEl.pause(); audioEl = null; }
   if("speechSynthesis" in window) speechSynthesis.cancel();
+  // 1) your own recording  2) bundled Argentine voice  3) device text-to-speech
   if(!current.drill && clipIds.has(String(current.id))){
-    try{
-      const blob = await getClip(current.id);
-      if(blob){
-        audioEl = new Audio(URL.createObjectURL(blob));
-        audioEl.preservesPitch = true; audioEl.playbackRate = slow ? .75 : 1;
-        audioEl.play().catch(()=>{}); return;
-      }
-    }catch(e){}
+    try{ const blob = await getClip(current.id); if(blob && await playSrc(URL.createObjectURL(blob), slow)) return; }catch(e){}
   }
+  const b = bundleClip(current.es);
+  if(b && await playSrc("data:audio/mpeg;base64," + b, slow)) return;
   if(!("speechSynthesis" in window)) return;
   const u = new SpeechSynthesisUtterance(current.es);
   u.lang = voice ? voice.lang : "es-AR"; if(voice) u.voice = voice; u.rate = slow ? .65 : .95;
@@ -522,10 +537,10 @@ async function speak(slow){
 }
 function updateAudioBadge(){
   if(!current || current.drill) return;
-  const has = clipIds.has(String(current.id));
-  $("audioBadge").textContent = has ? "✓ Native audio" : "Robot voice";
+  const mine = clipIds.has(String(current.id)), has = mine || !!bundleClip(current.es);
+  $("audioBadge").textContent = mine ? "✓ Your recording" : has ? "✓ Argentine voice" : "Robot voice";
   $("audioBadge").classList.toggle("has", has);
-  $("delClipBtn").classList.toggle("hidden", !has);
+  $("delClipBtn").classList.toggle("hidden", !mine);
   $("clipCount").textContent = `${clipIds.size} of ${allCards().length} cards have native audio.`;
 }
 async function saveClip(id, blob){
@@ -656,7 +671,7 @@ $("playSlowBtn").onclick = () => speak(true);
 $("nextBtn").onclick = () => { countReview(); next(); };
 document.querySelectorAll("[data-grade]").forEach(b => b.onclick = () => grade(+b.dataset.grade));
 $("practiceBtn").onclick = () => { practiceAll = true; buildQueue(); next(); };
-$("voiceSel").onchange = () => { voice = voices[$("voiceSel").value]; settings.voice = voice ? voice.name : null; put(K.settings, settings); };
+$("voiceSel").onchange = () => { applyVoice(); const v = $("voiceSel").value; settings.voice = v.startsWith("b:") ? v : (voice ? voice.name : null); put(K.settings, settings); };
 $("manageBtn").onclick = () => { $("goalInput").value = settings.goal; renderCustomList(); updateAudioBadge(); $("clipCount").textContent = `${clipIds.size} of ${allCards().length} cards have native audio.`; $("sheet").classList.remove("hidden"); };
 $("closeSheet").onclick = () => { $("sheet").classList.add("hidden"); if(mode !== "c" && !revealed){ buildQueue(); next(); } updateStats(); };
 $("sheet").onclick = e => { if(e.target.id === "sheet") $("closeSheet").onclick(); };
@@ -678,8 +693,8 @@ document.addEventListener("keydown", e => {
 });
 
 // ================= START =================
-if("speechSynthesis" in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
-else $("voiceSel").innerHTML = `<option>Not supported</option>`;
+loadVoices();
+if("speechSynthesis" in window) speechSynthesis.onvoiceschanged = loadVoices;
 rebuildCats(); updateStreak();
 clipKeys().then(keys => { clipIds = new Set((keys||[]).map(String)); updateAudioBadge(); })
   .catch(() => { document.querySelectorAll("#recBtn,#clipFile").forEach(el => el.closest("label,button").classList.add("hidden")); });
