@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>Argentech Trainer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Argentech">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --inset:#0f172a99; --border:#334155;
+    --text:#f1f5f9; --muted:#94a3b8; --accent:#38bdf8; --accent-strong:#0284c7;
+    --accent-soft:#0c4a6e66; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --fire:#fb923c;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f1f5f9; --card:#ffffff; --inset:#f8fafc; --border:#cbd5e1;
+      --text:#0f172a; --muted:#475569; --accent:#0369a1; --accent-strong:#0284c7;
+      --accent-soft:#e0f2fe; --fire:#ea580c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+    font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex;justify-content:center;align-items:flex-start;padding:20px 16px}
+  .app{width:100%;max-width:560px;background:var(--card);border:1px solid var(--border);
+    border-radius:18px;padding:20px;box-shadow:0 20px 50px #0005}
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:1.15rem;margin:0;color:var(--accent);letter-spacing:.02em}
+  .pill{font-size:.78rem;background:var(--inset);border:1px solid var(--border);color:var(--muted);
+    padding:4px 10px;border-radius:999px;white-space:nowrap}
+  #streak{color:var(--fire);font-weight:600}
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--inset);border:1px solid var(--border);
+    border-radius:12px;padding:4px;margin-bottom:12px}
+  .tabs button{padding:8px 4px;font-size:.82rem;border:0;background:transparent;color:var(--muted);border-radius:9px}
+  .tabs button.active{background:var(--accent-strong);color:#fff}
+  .bar{height:6px;background:var(--inset);border-radius:99px;overflow:hidden;margin-bottom:16px}
+  .bar>div{height:100%;background:var(--accent);width:0;transition:width .3s}
+  .panel{background:var(--inset);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+  .label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 4px;
+    display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .tag{color:var(--accent);font-weight:600}
+  .prompt{font-size:1.15rem;font-weight:500;margin:0}
+  .row{display:flex;gap:8px;align-items:center}
+  .mb{margin-bottom:14px}
+  input[type=text],input[type=number],textarea{font:inherit;padding:12px 14px;border-radius:12px;border:1px solid var(--border);
+    background:var(--card);color:var(--text);min-width:0}
+  #guess{flex:1}
+  input:focus,textarea:focus{outline:2px solid var(--accent);border-color:transparent}
+  button,.btnlike{font:inherit;cursor:pointer;border-radius:12px;padding:12px 14px;font-weight:600;
+    background:var(--inset);color:var(--text);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;gap:4px}
+  button:hover,.btnlike:hover{filter:brightness(1.12)}
+  button:disabled{opacity:.5;cursor:default}
+  .primary{background:var(--accent-strong);color:#fff;border-color:transparent}
+  .small{padding:5px 10px;font-size:.8rem;border-radius:8px}
+  .danger{border-color:var(--bad);color:var(--bad)}
+  .grow{flex:1}
+  .hidden{display:none!important}
+  .answer{background:var(--accent-soft);border-color:var(--accent-strong)}
+  .main{font-size:1.3rem;font-weight:650;margin:0;color:var(--accent)}
+  .sub{font-size:.88rem;color:var(--muted);margin:4px 0 0}
+  .nuance{font-size:.9rem;color:var(--muted);margin:0}
+  .nuance b{color:var(--text)}
+  .feedback{font-size:.92rem;margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--card);border:1px solid var(--border)}
+  .ok{color:var(--good)} .close{color:var(--warn)} .no{color:var(--bad)}
+  mark{background:transparent;color:var(--bad);text-decoration:underline;font-weight:600}
+  .audio-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)}
+  #audioBadge{font-size:.75rem;color:var(--muted);margin-right:auto}
+  #audioBadge.has{color:var(--good);font-weight:600}
+  .grades{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+  .grades button{flex-direction:column;gap:2px}
+  .grades small{font-weight:400;color:var(--muted);font-size:.72rem}
+  .g-again{border-color:var(--bad)} .g-good{border-color:var(--accent)} .g-easy{border-color:var(--good)}
+  footer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;
+    align-items:center;justify-content:space-between;font-size:.82rem;color:var(--muted)}
+  footer label{display:flex;align-items:center;gap:6px}
+  select{font:inherit;font-size:.82rem;background:var(--inset);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:4px;max-width:180px}
+  .done{text-align:center;padding:20px 6px}
+  .done h2{margin:0 0 6px;color:var(--accent)}
+  .keys{font-size:.75rem;color:var(--muted);text-align:center;margin-top:10px}
+  kbd{background:var(--inset);border:1px solid var(--border);border-radius:4px;padding:0 5px;font-size:.72rem}
+  @media (max-width:420px){ .keys{display:none} .tabs button{font-size:.75rem} }
+  /* manage sheet */
+  .sheet{position:fixed;inset:0;background:#0009;overflow-y:auto;padding:20px 16px;z-index:10}
+  .sheet-inner{max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px}
+  .sheet h2{margin:0;font-size:1.1rem;color:var(--accent)}
+  .sheet section{border-top:1px solid var(--border);padding:14px 0}
+  .sheet h3{margin:0 0 8px;font-size:.95rem}
+  .hint{font-size:.8rem;color:var(--muted);margin:0 0 8px}
+  .field{width:100%;margin-bottom:8px;padding:10px 12px}
+  .clist{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+  .citem{display:flex;gap:8px;align-items:center;font-size:.85rem;background:var(--inset);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+  .citem div{flex:1;min-width:0}
+  .citem b{display:block;color:var(--accent);overflow-wrap:anywhere}
+  .citem span{color:var(--muted);overflow-wrap:anywhere}
+  .wrap{display:flex;flex-wrap:wrap;gap:8px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--accent-strong);color:#fff;
+    padding:10px 16px;border-radius:12px;font-size:.9rem;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:20;max-width:90vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🇦🇷 Argentech Trainer</h1>
+    <div class="row"><span id="streak" class="pill"></span><span id="stats" class="pill"></span></div>
+  </header>
+
+  <nav class="tabs">
+    <button data-mode="t" class="active">EN → ES</button>
+    <button data-mode="r">ES → EN</button>
+    <button data-mode="l">🎧 Listen</button>
+    <button data-mode="c">Vos drill</button>
+  </nav>
+  <div class="bar"><div id="bar"></div></div>
+
+  <div id="card">
+    <div class="panel">
+      <p class="label"><span id="promptLabel"></span><span id="category" class="tag"></span></p>
+      <p id="prompt" class="prompt"></p>
+      <div id="playRow" class="row hidden" style="margin-top:10px">
+        <button id="playBtn" class="primary grow">🔊 Play</button>
+        <button id="playSlowBtn">🐢 Slow</button>
+      </div>
+    </div>
+
+    <div class="row mb">
+      <input id="guess" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button id="micBtn" title="Say it in Spanish">🎤</button>
+    </div>
+    <div class="row" id="preButtons">
+      <button id="checkBtn" class="primary grow">Check</button>
+      <button id="revealBtn" class="grow">Reveal</button>
+    </div>
+
+    <div id="answerArea" class="hidden">
+      <div class="panel answer">
+        <p class="label"><span id="answerLabel"></span>
+          <span class="row">
+            <button id="slowBtn" class="small">🐢 Slow</button>
+            <button id="listenBtn" class="small primary">🔊 Listen</button>
+          </span>
+        </p>
+        <p id="answerMain" class="main"></p>
+        <p id="answerSub" class="sub"></p>
+        <div id="feedback" class="feedback hidden"></div>
+        <div id="audioTools" class="audio-tools">
+          <span id="audioBadge"></span>
+          <button id="recBtn" class="small">🎙 Record</button>
+          <label class="btnlike small">📁 File<input id="clipFile" type="file" accept="audio/*" hidden></label>
+          <button id="delClipBtn" class="small hidden" title="Delete recording">🗑</button>
+        </div>
+      </div>
+      <div class="panel"><p class="nuance"><b>Local nuance:</b> <span id="nuance"></span></p></div>
+      <div id="gradeArea">
+        <p class="label" style="justify-content:center">How well did you know it?</p>
+        <div class="grades">
+          <button class="g-again" data-grade="0">Again<small>see soon</small></button>
+          <button class="g-good" data-grade="1">Good<small id="goodInt"></small></button>
+          <button class="g-easy" data-grade="2">Easy<small id="easyInt"></small></button>
+        </div>
+      </div>
+      <button id="nextBtn" class="primary hidden" style="width:100%">Next ➔</button>
+    </div>
+    <p class="keys"><kbd>Enter</kbd> check / next · <kbd>Space</kbd> listen · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> grade</p>
+  </div>
+
+  <div id="doneScreen" class="done hidden">
+    <h2>¡Bien ahí! 🎉</h2>
+    <p class="nuance">No cards due in this mode right now.</p>
+    <p class="nuance" id="nextDue"></p>
+    <button id="practiceBtn" class="primary" style="margin-top:12px">Practise all cards anyway</button>
+  </div>
+
+  <footer>
+    <label>Deck <select id="catFilter"></select></label>
+    <label>Voice <select id="voiceSel"></select></label>
+    <button id="manageBtn" class="small">⚙ Manage</button>
+  </footer>
+</div>
+
+<div id="sheet" class="sheet hidden">
+  <div class="sheet-inner">
+    <div class="row" style="justify-content:space-between"><h2>Manage</h2><button id="closeSheet" class="small">✕ Close</button></div>
+
+    <section>
+      <h3>Daily goal</h3>
+      <label class="row" style="font-size:.9rem">Reviews per day <input id="goalInput" type="number" min="5" max="300" style="width:90px;padding:8px 10px"></label>
+      <p class="hint" style="margin-top:8px">Your streak grows each day you hit the goal. Every graded card and drill counts.</p>
+    </section>
+
+    <section>
+      <h3>Add a card</h3>
+      <input id="newEn" class="field" type="text" placeholder="English *">
+      <input id="newEs" class="field" type="text" placeholder="Rioplatense Spanish *">
+      <input id="newAlt" class="field" type="text" placeholder="Other accepted answers (separate with |)">
+      <input id="newCat" class="field" type="text" placeholder="Category (default: Custom)">
+      <textarea id="newNote" class="field" rows="2" placeholder="Nuance / note"></textarea>
+      <button id="addCardBtn" class="primary">+ Add card</button>
+    </section>
+
+    <section>
+      <h3>Your cards (<span id="customCount">0</span>)</h3>
+      <div id="customList" class="clist"></div>
+    </section>
+
+    <section>
+      <h3>Import / export</h3>
+      <p class="hint">CSV columns: category, english, spanish, alternatives (separate with |), note. Imported rows become your own cards; duplicates are skipped.</p>
+      <div class="wrap">
+        <button id="exportBtn" class="small">⬇ Export all cards</button>
+        <label class="btnlike small">⬆ Import CSV<input id="importFile" type="file" accept=".csv,text/csv" hidden></label>
+      </div>
+    </section>
+
+    <section>
+      <h3>Native audio</h3>
+      <p class="hint">Recordings replace the robot voice for that card. Record on any card, or bulk-import files named by card ID (e.g. <b>15.mp3</b>). The phrase list shows every ID and the filename to use.</p>
+      <div class="wrap">
+        <button id="phraseListBtn" class="small">⬇ Phrase list</button>
+        <label class="btnlike small">⬆ Import audio files<input id="bulkAudio" type="file" accept="audio/*" multiple hidden></label>
+      </div>
+      <p class="hint" id="clipCount" style="margin-top:8px"></p>
+    </section>
+
+    <section>
+      <button id="resetBtn" class="small danger">Reset all progress</button>
+    </section>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+// ================= DATA =================
+const BUILTIN = [
+  {id:1, cat:"Voseo", en:"What are you doing tonight? Do you want to grab a beer?", es:"¿Qué hacés esta noche? ¿Querés tomar una birra?", note:"Vos forms <em>hacés</em> and <em>querés</em> (stress on the last syllable) replace tú haces/quieres. <em>Birra</em> is everyday slang for beer."},
+  {id:2, cat:"Slang", en:"Come on, don't be silly, let's go check it out.", es:"Dale, no seas boludo, vamos a chequearlo.", alt:["Dale, no seas boludo, vamos a ver."], note:"<em>Dale</em> = come on / OK / sure — you'll hear it constantly. <em>Boludo</em> is affectionate between friends but an insult with strangers; read the room."},
+  {id:3, cat:"Voseo", en:"Where are you from? I'm from Buenos Aires.", es:"¿De dónde sos? Yo soy de Buenos Aires.", note:"<em>Vos sos</em> replaces tú eres. Locals call themselves <em>porteños</em> (from the port city)."},
+  {id:4, cat:"Grammar", en:"I don't understand anything they are telling me.", es:"No entiendo nada de lo que me dicen.", note:"Double negative <em>no… nada</em> is standard. When shadowing, link the vowels: <em>lo-que-me-di-cen</em> flows as one unit."},
+  {id:5, cat:"Slang", en:"Look at that guy, he's totally crazy.", es:"Mirá a ese tipo, está re loco.", note:"Vos imperative <em>mirá</em> (stress on the end). <em>Re</em> is the go-to intensifier instead of muy."},
+  {id:6, cat:"Voseo", en:"Where do you live?", es:"¿Dónde vivís?", note:"-ir verbs take <em>-ís</em> with vos: vivís, decís, escribís."},
+  {id:7, cat:"Slang", en:"Tell me, what's up?", es:"Contame, ¿qué onda?", note:"<em>Contame</em> = contá + me (vos imperative, no stem change: not cuéntame). <em>¿Qué onda?</em> = what's up / what's the deal."},
+  {id:8, cat:"Slang", en:"I'm taking the bus.", es:"Me tomo el bondi.", alt:["Me tomo el colectivo.","Voy a tomar el bondi."], note:"The bus is <em>el colectivo</em> or slangy <em>el bondi</em> — never camión or guagua here."},
+  {id:9, cat:"Slang", en:"That's really cool!", es:"¡Qué copado!", alt:["¡Está buenísimo!"], note:"<em>Copado</em> = cool/great. <em>Me copa</em> = I'm into it."},
+  {id:10, cat:"Slang", en:"I'm broke.", es:"Estoy sin un mango.", alt:["Estoy seco."], note:"<em>Mango</em> is slang for a peso — 'without a mango' means skint."},
+  {id:11, cat:"Voseo", en:"Wait a moment.", es:"Esperá un toque.", note:"<em>Esperá</em> is vos imperative. <em>Un toque</em> = a moment / a little bit."},
+  {id:12, cat:"Culture", en:"Do you want some mate?", es:"¿Querés un mate?", note:"Mate is shared from one gourd. Saying <em>gracias</em> when handed it back means you're done."},
+  {id:13, cat:"Slang", en:"It's a total mess.", es:"Es un quilombo.", note:"<em>Quilombo</em> = chaos/mess. Very common, mildly crude in formal settings."},
+  {id:14, cat:"Slang", en:"I'm working, I've got loads of work.", es:"Estoy laburando, tengo un montón de laburo.", note:"<em>Laburar / laburo</em> (from Italian lavorare) = to work / job. <em>Un montón</em> = loads."},
+  {id:15, cat:"Pronunciation", en:"Yesterday it rained a lot.", es:"Ayer llovió un montón.", note:"Sheísmo: <em>ll</em> and <em>y</em> sound like English 'sh' — <em>a-SHER sho-VIÓ</em>. Older speakers use a softer 'zh'."},
+  {id:16, cat:"Voseo", en:"You can come with us.", es:"Podés venir con nosotros.", note:"No stem change with vos: <em>podés</em> (not puedes), <em>querés</em>, <em>tenés</em>."},
+  {id:17, cat:"Pronunciation", en:"Call me when you get there.", es:"Llamame cuando llegues.", note:"<em>Llamá + me</em> = <em>llamame</em> (stress on 'ma', no written accent). Both <em>ll</em>s are 'sh': <em>sha-MA-me… SHE-gues</em>."},
+  {id:18, cat:"Slang", en:"Don't worry, it's fine.", es:"Tranqui, no pasa nada.", alt:["Tranquilo, no pasa nada."], note:"<em>Tranqui</em> = chill / relax. Universal reassurance."},
+  {id:19, cat:"Culture", en:"Shall we have a barbecue on Sunday?", es:"¿Hacemos un asado el domingo?", note:"The <em>asado</em> is a social institution; the cook is the <em>asador</em> and gets applauded."},
+  {id:20, cat:"Slang", en:"Wow, that's expensive, mate!", es:"¡Qué caro, che!", note:"<em>Che</em> = hey / mate. So iconic that Ernesto Guevara got his nickname from it."},
+  {id:21, cat:"Voseo", en:"Tell me the truth.", es:"Decime la verdad.", note:"<em>Decí + me</em> = <em>decime</em> (not dime)."},
+  {id:22, cat:"Grammar", en:"Have you eaten yet?", es:"¿Ya comiste?", note:"Rioplatense strongly prefers the simple past over ¿Ya has comido? Vos preterite matches tú: <em>comiste</em>."},
+  {id:23, cat:"Slang", en:"The kid is really cool.", es:"El pibe es muy piola.", alt:["El pibe es re piola."], note:"<em>Pibe/piba</em> = kid / young person. <em>Piola</em> = cool, decent, clever."},
+  {id:24, cat:"Voseo", en:"Do you know where the underground is?", es:"¿Sabés dónde está el subte?", note:"<em>Sabés</em> (vos). The Buenos Aires metro is <em>el subte</em>."},
+  {id:25, cat:"Slang", en:"Yeah, totally, I agree.", es:"Sí, obvio, estoy de acuerdo.", alt:["Sí, re, estoy de acuerdo."], note:"<em>Obvio</em> = of course. Young speakers even answer just <em>re</em> as 'totally'."}
+];
+
+// [infinitive, tú present, tú command (null = skip), English]
+const VERBS = [
+  ["hablar","hablas","habla","speak"],["querer","quieres",null,"want"],["poder","puedes",null,"can"],
+  ["tener","tienes","ten","have"],["venir","vienes","ven","come"],["decir","dices","di","say"],
+  ["hacer","haces","haz","do"],["salir","sales","sal","go out"],["poner","pones","pon","put"],
+  ["dormir","duermes","duerme","sleep"],["pensar","piensas","piensa","think"],["contar","cuentas","cuenta","tell"],
+  ["volver","vuelves","vuelve","come back"],["pedir","pides","pide","ask for"],["sentir","sientes","siente","feel"],
+  ["jugar","juegas","juega","play"],["saber","sabes",null,"know"],["mirar","miras","mira","look"],
+  ["esperar","esperas","espera","wait"],["ser","eres","sé","be"],["ir","vas","ve","go"],
+  ["comer","comes","come","eat"],["vivir","vives","vive","live"],["escribir","escribes","escribe","write"],
+  ["entender","entiendes","entiende","understand"],["empezar","empiezas","empieza","start"],
+  ["llamar","llamas","llama","call"],["seguir","sigues","sigue","keep going"]
+];
+const ACC = {ar:"á", er:"é", ir:"í"};
+const vosPres = v => ({ser:"sos", ir:"vas"})[v] || v.slice(0,-2) + ACC[v.slice(-2)] + "s";
+const vosImp  = v => ({ser:"sé", ir:"andá"})[v] || v.slice(0,-2) + ACC[v.slice(-2)];
+
+// ================= STORAGE =================
+const K = {srs:"argentech-srs-v2", old:"argentech-srs-v1", custom:"argentech-custom", settings:"argentech-settings", log:"argentech-log"};
+function get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function put(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+let srs = get(K.srs, null);
+if(!srs){ srs = {}; const old = get(K.old, {}); for(const id in old) srs[id+"|t"] = old[id]; put(K.srs, srs); }
+let custom = get(K.custom, []);
+let settings = Object.assign({goal:20, mode:"t", voice:null}, get(K.settings, {}));
+let log = get(K.log, {});
+
+// audio clips in IndexedDB
+let dbP = null;
+function db(){
+  if(!dbP) dbP = new Promise((res,rej)=>{
+    const r = indexedDB.open("argentech-audio", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("clips");
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return dbP;
+}
+async function clipOp(mode, fn){
+  const d = await db();
+  return new Promise((res,rej)=>{ const tx = d.transaction("clips", mode); const req = fn(tx.objectStore("clips")); tx.oncomplete = () => res(req && req.result); tx.onerror = () => rej(tx.error); });
+}
+const putClip = (id,blob) => clipOp("readwrite", s => s.put(blob, String(id)));
+const getClip = id => clipOp("readonly", s => s.get(String(id)));
+const delClip = id => clipOp("readwrite", s => s.delete(String(id)));
+const clipKeys = () => clipOp("readonly", s => s.getAllKeys());
+let clipIds = new Set();
+
+// ================= HELPERS =================
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const norm = s => s.toLowerCase().replace(/[¿?¡!.,;:"'“”‘’()]/g,"").replace(/\s+/g," ").trim();
+const bare = s => norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const allCards = () => BUILTIN.concat(custom);
+const noteHtml = c => typeof c.id === "number" ? c.note : esc(c.note || "");
+const fmtDays = d => d >= 30 ? Math.round(d/30)+" mo" : d+" day"+(d===1?"":"s");
+let toastT;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 2600); }
+function download(name, text, type="text/csv"){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
+// ================= STREAK =================
+const dayKey = (off=0) => { const d = new Date(); d.setDate(d.getDate()-off); return d.toLocaleDateString("en-CA"); };
+function streak(){
+  let i = (log[dayKey()]||0) >= settings.goal ? 0 : 1, n = 0;
+  while((log[dayKey(i)]||0) >= settings.goal){ n++; i++; }
+  return n;
+}
+function countReview(){
+  const t = dayKey(); log[t] = (log[t]||0) + 1; put(K.log, log);
+  if(log[t] === settings.goal) toast(`Daily goal hit! 🔥 ${streak()}-day streak`);
+  updateStreak();
+}
+function updateStreak(){ $("streak").textContent = `🔥 ${streak()} · ${log[dayKey()]||0}/${settings.goal}`; }
+
+// ================= SESSION =================
+const DAY = 864e5, INTERVALS = [0,1,3,7,21,60];
+let mode = settings.mode, queue = [], current = null, revealed = false, practiceAll = false;
+let conj = {right:0, total:0}, lastVerb = null;
+
+const filtered = () => $("catFilter").value === "all" || !$("catFilter").value ? allCards() : allCards().filter(c => c.cat === $("catFilter").value);
+const skey = c => c.id + "|" + mode;
+const info = c => srs[skey(c)] || {box:0, due:0};
+
+function buildQueue(){
+  const now = Date.now();
+  let pool = filtered();
+  if(!practiceAll) pool = pool.filter(c => info(c).due <= now);
+  shuffle(pool);
+  pool.sort((a,b) => (srs[skey(b)]?1:0) - (srs[skey(a)]?1:0)); // reviews before new cards
+  queue = pool;
+}
+
+function genDrill(){
+  let v; do { v = VERBS[Math.floor(Math.random()*VERBS.length)]; } while(VERBS.length > 1 && v === lastVerb);
+  lastVerb = v;
+  const [inf, tuP, tuI, en] = v;
+  const cmd = tuI && Math.random() < .45;
+  let note;
+  if(cmd) note = inf === "ir" ? "<em>Andá</em> is the everyday vos command for ir (tú: ve). <em>¡Andá!</em> can also mean 'get out of here!'"
+         : inf === "ser" ? "Vos and tú share <em>sé</em> for ser — one of the few overlaps."
+         : `Vos command = infinitive minus -r, stress on the last vowel: <em>${vosImp(inf)}</em>. Add a pronoun and the written accent drops: <em>${vosImp(inf).normalize("NFD").replace(/[\u0300-\u036f]/g,"")}me</em>.`;
+  else note = inf === "ser" ? "<em>Vos sos</em> — completely irregular, learn it by heart."
+         : inf === "ir" ? "Same as tú: <em>vos vas</em>."
+         : `Vos present = drop the -r, stress the ending: <em>${vosPres(inf)}</em>. No stem change${tuP.slice(0,3) !== vosPres(inf).slice(0,3) ? ` (tú ${tuP} → vos ${vosPres(inf)})` : ""}.`;
+  return { drill:true, cat: cmd ? "vos · command" : "vos · present",
+    prompt: cmd ? `${inf} — “${en[0].toUpperCase()+en.slice(1)}!”` : `${inf} — “you ${en}”`,
+    es: cmd ? vosImp(inf) : vosPres(inf), tu: cmd ? tuI : tuP, note };
+}
+
+function next(){
+  if(mode === "c"){ current = genDrill(); render(); return; }
+  if(!queue.length){ showDone(); return; }
+  current = queue.shift(); render();
+}
+
+function render(){
+  revealed = false;
+  $("card").classList.remove("hidden"); $("doneScreen").classList.add("hidden");
+  $("guess").value = ""; $("feedback").classList.add("hidden");
+  $("answerArea").classList.add("hidden"); $("preButtons").classList.remove("hidden");
+  $("category").textContent = current.cat;
+  const c = current, isDrill = mode === "c";
+  $("playRow").classList.toggle("hidden", !(mode === "r" || mode === "l"));
+  $("micBtn").classList.toggle("hidden", !SR || !(mode === "t" || mode === "l"));
+  $("audioTools").classList.toggle("hidden", isDrill);
+  $("gradeArea").classList.toggle("hidden", isDrill);
+  $("nextBtn").classList.toggle("hidden", !isDrill);
+
+  if(mode === "t"){
+    $("promptLabel").textContent = "Translate using voseo"; $("prompt").textContent = c.en;
+    $("guess").placeholder = "Escribí tu respuesta…";
+    $("answerLabel").textContent = "Rioplatense"; $("answerMain").textContent = c.es;
+    $("answerSub").textContent = c.alt ? "Also: " + c.alt.join(" · ") : "";
+  } else if(mode === "r"){
+    $("promptLabel").textContent = "Translate to English"; $("prompt").textContent = c.es;
+    $("guess").placeholder = "Type the English meaning…";
+    $("answerLabel").textContent = "English"; $("answerMain").textContent = c.en; $("answerSub").textContent = "";
+  } else if(mode === "l"){
+    $("promptLabel").textContent = "Type what you hear"; $("prompt").textContent = "🎧 Listen, then write it in Spanish";
+    $("guess").placeholder = "Escribí lo que escuchás…";
+    $("answerLabel").textContent = "Rioplatense"; $("answerMain").textContent = c.es;
+    $("answerSub").textContent = "“" + c.en + "”" + (c.alt ? " · Also: " + c.alt.join(" · ") : "");
+  } else {
+    $("promptLabel").textContent = "Conjugate with vos"; $("prompt").textContent = c.prompt;
+    $("guess").placeholder = "vos…";
+    $("answerLabel").textContent = "Vos form"; $("answerMain").textContent = c.es; $("answerSub").textContent = "tú: " + c.tu;
+  }
+  $("nuance").innerHTML = isDrill ? c.note : noteHtml(c) || "—";
+  if(!isDrill){
+    const b = info(c).box;
+    $("goodInt").textContent = fmtDays(INTERVALS[Math.min(b+1,5)]);
+    $("easyInt").textContent = fmtDays(INTERVALS[Math.min(b+2,5)]);
+    updateAudioBadge();
+  }
+  updateStats();
+  if(mode === "l") speak(false);
+  if(matchMedia("(hover:hover)").matches) $("guess").focus();
+}
+
+function showDone(){
+  $("card").classList.add("hidden"); $("doneScreen").classList.remove("hidden");
+  const dues = filtered().map(c => info(c).due).filter(d => d > Date.now());
+  $("nextDue").textContent = dues.length ? "Next card due " + new Date(Math.min(...dues)).toLocaleString([], {weekday:"short", hour:"2-digit", minute:"2-digit"}) : "";
+  updateStats();
+}
+
+function updateStats(){
+  if(mode === "c"){
+    $("stats").textContent = `✔ ${conj.right}/${conj.total} this session`;
+    $("bar").style.width = (conj.total ? conj.right/conj.total*100 : 0) + "%";
+    return;
+  }
+  const cards = filtered(), now = Date.now();
+  const learned = cards.filter(c => info(c).box >= 2).length;
+  const due = cards.filter(c => info(c).due <= now).length;
+  $("stats").textContent = `Due ${due} · Learned ${learned}/${cards.length}`;
+  $("bar").style.width = (cards.length ? learned/cards.length*100 : 0) + "%";
+}
+
+// ================= CHECKING =================
+const STOP = new Set(["a","an","the","to","is","it","i","you","of","im","its","are"]);
+function check(){
+  const g = $("guess").value.trim();
+  if(!g){ reveal(); return; }
+  let html;
+  if(mode === "r"){
+    const t = norm(current.en), u = norm(g);
+    const tw = t.split(" ").filter(w => !STOP.has(w)), uw = new Set(u.split(" "));
+    const hit = tw.filter(w => uw.has(w)).length / (tw.length || 1);
+    html = t === u ? `<span class="ok">✔ ¡Perfecto!</span>`
+      : hit >= .7 ? `<span class="ok">✔ Close enough</span> — compare the wording and grade yourself.`
+      : `<span class="close">≈ Compare with the answer</span> — meaning matters more than exact words, so grade yourself honestly.`;
+  } else {
+    const answers = [current.es, ...(current.alt || [])];
+    if(answers.some(a => norm(a) === norm(g))){ html = `<span class="ok">✔ ¡Perfecto!</span>`; if(mode==="c") conj.right++; }
+    else if(answers.some(a => bare(a) === bare(g))) html = `<span class="close">≈ Almost — check your accents.</span> In voseo the stress mark matters (hacés ≠ haces).`;
+    else {
+      const have = new Set(bare(g).split(" "));
+      const marked = current.es.split(" ").map(w => have.has(bare(w)) ? esc(w) : `<mark>${esc(w)}</mark>`).join(" ");
+      html = `<span class="no">✘ Not quite.</span> ` + (mode === "c" ? `You wrote “${esc(g)}”.` : `Missing or different: ${marked}`);
+    }
+    if(mode === "c") conj.total++;
+  }
+  $("feedback").innerHTML = html; $("feedback").classList.remove("hidden");
+  reveal(true);
+}
+function reveal(checked){
+  if(mode === "c" && !checked) conj.total++;
+  revealed = true;
+  $("answerArea").classList.remove("hidden"); $("preButtons").classList.add("hidden");
+  $("guess").blur(); updateStats();
+}
+function grade(g){
+  const s = info(current), box = g === 0 ? 0 : Math.min(s.box + (g === 2 ? 2 : 1), 5);
+  srs[skey(current)] = {box, due: g === 0 ? Date.now() : Date.now() + INTERVALS[box]*DAY};
+  put(K.srs, srs); countReview();
+  if(g === 0) queue.splice(Math.min(3, queue.length), 0, current);
+  next();
+}
+
+// ================= AUDIO =================
+let voices = [], voice = null, audioEl = null;
+function loadVoices(){
+  voices = (speechSynthesis.getVoices() || []).filter(v => /^es/i.test(v.lang));
+  const rank = v => /es[-_]AR/i.test(v.lang) ? 0 : /es[-_](UY|419|US|MX)/i.test(v.lang) ? 1 : 2;
+  voices.sort((a,b) => rank(a) - rank(b));
+  $("voiceSel").innerHTML = voices.length ? voices.map((v,i) => `<option value="${i}">${esc(v.name)} (${v.lang})</option>`).join("") : `<option>No Spanish voice</option>`;
+  const idx = voices.findIndex(v => v.name === settings.voice);
+  $("voiceSel").value = idx >= 0 ? idx : 0;
+  voice = voices[$("voiceSel").value] || null;
+}
+async function speak(slow){
+  if(!current) return;
+  if(audioEl){ audioEl.pause(); audioEl = null; }
+  if("speechSynthesis" in window) speechSynthesis.cancel();
+  if(!current.drill && clipIds.has(String(current.id))){
+    try{
+      const blob = await getClip(current.id);
+      if(blob){
+        audioEl = new Audio(URL.createObjectURL(blob));
+        audioEl.preservesPitch = true; audioEl.playbackRate = slow ? .75 : 1;
+        audioEl.play().catch(()=>{}); return;
+      }
+    }catch(e){}
+  }
+  if(!("speechSynthesis" in window)) return;
+  const u = new SpeechSynthesisUtterance(current.es);
+  u.lang = voice ? voice.lang : "es-AR"; if(voice) u.voice = voice; u.rate = slow ? .65 : .95;
+  speechSynthesis.speak(u);
+}
+function updateAudioBadge(){
+  if(!current || current.drill) return;
+  const has = clipIds.has(String(current.id));
+  $("audioBadge").textContent = has ? "✓ Native audio" : "Robot voice";
+  $("audioBadge").classList.toggle("has", has);
+  $("delClipBtn").classList.toggle("hidden", !has);
+  $("clipCount").textContent = `${clipIds.size} of ${allCards().length} cards have native audio.`;
+}
+async function saveClip(id, blob){
+  try{ await putClip(id, blob); clipIds.add(String(id)); updateAudioBadge(); return true; }
+  catch(e){ toast("Couldn't save audio in this browser"); return false; }
+}
+
+// recording
+let rec = null;
+$("recBtn").onclick = async () => {
+  if(rec && rec.state === "recording"){ rec.stop(); return; }
+  const id = current.id;
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const chunks = []; rec = new MediaRecorder(stream);
+    rec.ondataavailable = e => chunks.push(e.data);
+    rec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      $("recBtn").textContent = "🎙 Record";
+      if(await saveClip(id, new Blob(chunks, {type: rec.mimeType || "audio/webm"}))) toast("Saved — this card now uses your recording");
+    };
+    rec.start(); $("recBtn").textContent = "⏹ Stop";
+  }catch(e){ toast("Mic not available here — try importing a file instead"); }
+};
+$("clipFile").onchange = async e => { const f = e.target.files[0]; if(f && await saveClip(current.id, f)) toast("Audio added to this card"); e.target.value = ""; };
+$("delClipBtn").onclick = async () => { await delClip(current.id); clipIds.delete(String(current.id)); updateAudioBadge(); toast("Recording removed"); };
+$("bulkAudio").onchange = async e => {
+  const ids = new Set(allCards().map(c => String(c.id))); let n = 0, skipped = 0;
+  for(const f of e.target.files){
+    const stem = f.name.replace(/\.[^.]+$/, "");
+    if(ids.has(stem)){ if(await saveClip(stem, f)) n++; } else skipped++;
+  }
+  toast(`Imported ${n} clip${n===1?"":"s"}` + (skipped ? ` · ${skipped} didn't match a card ID` : ""));
+  e.target.value = "";
+};
+$("phraseListBtn").onclick = () => download("argentech-phrases.csv",
+  toCSV([["id","filename","spanish","english"], ...allCards().map(c => [c.id, c.id+".mp3", c.es, c.en])]));
+
+// speech recognition
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+$("micBtn").onclick = () => {
+  const r = new SR(); r.lang = "es-AR"; r.interimResults = false;
+  $("micBtn").textContent = "⏺";
+  r.onresult = e => { $("guess").value = e.results[0][0].transcript; check(); };
+  r.onend = r.onerror = () => $("micBtn").textContent = "🎤";
+  r.start();
+};
+
+// ================= CUSTOM CARDS & CSV =================
+function toCSV(rows){ return rows.map(r => r.map(v => { v = String(v ?? ""); return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; }).join(",")).join("\n"); }
+function parseCSV(text){
+  const rows = []; let row = [], f = "", q = false;
+  text = text.replace(/^\uFEFF/, "");
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(q){ if(ch === '"'){ if(text[i+1] === '"'){ f += '"'; i++; } else q = false; } else f += ch; }
+    else if(ch === '"') q = true;
+    else if(ch === ","){ row.push(f); f = ""; }
+    else if(ch === "\n" || ch === "\r"){ if(ch === "\r" && text[i+1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += ch;
+  }
+  if(f || row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+const stripTags = s => String(s || "").replace(/<[^>]+>/g, "");
+function addCard(cat, en, es, altStr, note){
+  en = en.trim(); es = es.trim();
+  if(!en || !es) return false;
+  if(allCards().some(c => norm(c.es) === norm(es))) return false;
+  const alt = (altStr || "").split("|").map(s => s.trim()).filter(Boolean);
+  custom.push({id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2,5), cat: (cat || "").trim() || "Custom", en, es, alt: alt.length ? alt : undefined, note: (note || "").trim()});
+  return true;
+}
+function saveCustom(){ put(K.custom, custom); rebuildCats(); renderCustomList(); }
+function renderCustomList(){
+  $("customCount").textContent = custom.length;
+  $("customList").innerHTML = custom.length ? custom.map(c =>
+    `<div class="citem"><div><b>${esc(c.es)}</b><span>${esc(c.en)} · ${esc(c.cat)} · ID ${esc(c.id)}</span></div><button class="small" data-del="${esc(c.id)}">✕</button></div>`).join("")
+    : `<p class="hint">No cards of your own yet.</p>`;
+}
+$("customList").onclick = async e => {
+  const id = e.target.dataset.del; if(!id) return;
+  custom = custom.filter(c => c.id !== id);
+  for(const k of Object.keys(srs)) if(k.startsWith(id + "|")) delete srs[k];
+  put(K.srs, srs);
+  if(clipIds.has(id)){ try{ await delClip(id); }catch(_){} clipIds.delete(id); }
+  saveCustom(); toast("Card deleted");
+};
+$("addCardBtn").onclick = () => {
+  if(!$("newEn").value.trim() || !$("newEs").value.trim()){ toast("English and Spanish are required"); return; }
+  if(!addCard($("newCat").value, $("newEn").value, $("newEs").value, $("newAlt").value, $("newNote").value)){ toast("That Spanish phrase already exists"); return; }
+  ["newEn","newEs","newAlt","newCat","newNote"].forEach(id => $(id).value = "");
+  saveCustom(); toast("Card added — it's due now");
+};
+$("exportBtn").onclick = () => download("argentech-cards.csv",
+  toCSV([["category","english","spanish","alternatives","note"], ...allCards().map(c => [c.cat, c.en, c.es, (c.alt||[]).join(" | "), stripTags(c.note)])]));
+$("importFile").onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rows = parseCSV(await f.text());
+  if(rows.length && rows[0][0].trim().toLowerCase() === "category") rows.shift();
+  let n = 0, skipped = 0;
+  for(const r of rows){ if(addCard(r[0], r[1]||"", r[2]||"", r[3], r[4])) n++; else skipped++; }
+  saveCustom(); toast(`Imported ${n} card${n===1?"":"s"}` + (skipped ? ` · ${skipped} skipped` : ""));
+  e.target.value = "";
+};
+
+// ================= UI WIRING =================
+function rebuildCats(){
+  const sel = $("catFilter"), prev = sel.value || "all";
+  const cats = [...new Set(allCards().map(c => c.cat))];
+  sel.innerHTML = `<option value="all">All</option>` + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  sel.value = cats.includes(prev) ? prev : "all";
+}
+function setMode(m){
+  mode = m; settings.mode = m; put(K.settings, settings); practiceAll = false;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.mode === m));
+  $("catFilter").disabled = m === "c";
+  buildQueue(); next();
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+$("catFilter").onchange = () => { practiceAll = false; buildQueue(); next(); };
+$("checkBtn").onclick = check;
+$("revealBtn").onclick = () => reveal(false);
+$("listenBtn").onclick = () => speak(false);
+$("slowBtn").onclick = () => speak(true);
+$("playBtn").onclick = () => speak(false);
+$("playSlowBtn").onclick = () => speak(true);
+$("nextBtn").onclick = () => { countReview(); next(); };
+document.querySelectorAll("[data-grade]").forEach(b => b.onclick = () => grade(+b.dataset.grade));
+$("practiceBtn").onclick = () => { practiceAll = true; buildQueue(); next(); };
+$("voiceSel").onchange = () => { voice = voices[$("voiceSel").value]; settings.voice = voice ? voice.name : null; put(K.settings, settings); };
+$("manageBtn").onclick = () => { $("goalInput").value = settings.goal; renderCustomList(); updateAudioBadge(); $("clipCount").textContent = `${clipIds.size} of ${allCards().length} cards have native audio.`; $("sheet").classList.remove("hidden"); };
+$("closeSheet").onclick = () => { $("sheet").classList.add("hidden"); if(mode !== "c" && !revealed){ buildQueue(); next(); } updateStats(); };
+$("sheet").onclick = e => { if(e.target.id === "sheet") $("closeSheet").onclick(); };
+$("goalInput").onchange = () => { settings.goal = Math.max(5, Math.min(300, +$("goalInput").value || 20)); $("goalInput").value = settings.goal; put(K.settings, settings); updateStreak(); };
+$("resetBtn").onclick = () => {
+  if(!confirm("Reset review progress and streak? Your own cards and recordings are kept.")) return;
+  srs = {}; log = {}; put(K.srs, srs); put(K.log, log); conj = {right:0,total:0};
+  updateStreak(); $("sheet").classList.add("hidden"); setMode(mode); toast("Progress reset");
+};
+
+$("guess").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); revealed ? (mode === "c" ? $("nextBtn").click() : grade(1)) : check(); } });
+document.addEventListener("keydown", e => {
+  if(!$("sheet").classList.contains("hidden")) return;
+  if(["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName)) return;
+  if($("card").classList.contains("hidden")) return;
+  if(e.key === "Enter"){ e.preventDefault(); if(!revealed) reveal(false); else if(mode === "c") $("nextBtn").click(); else grade(1); }
+  else if(e.key === " " && (revealed || mode === "r" || mode === "l")){ e.preventDefault(); speak(false); }
+  else if(revealed && mode !== "c" && ["1","2","3"].includes(e.key)) grade(+e.key - 1);
+});
+
+// ================= START =================
+if("speechSynthesis" in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+else $("voiceSel").innerHTML = `<option>Not supported</option>`;
+rebuildCats(); updateStreak();
+clipKeys().then(keys => { clipIds = new Set((keys||[]).map(String)); updateAudioBadge(); })
+  .catch(() => { document.querySelectorAll("#recBtn,#clipFile").forEach(el => el.closest("label,button").classList.add("hidden")); });
+setMode(["t","r","l","c"].includes(mode) ? mode : "t");
+if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
